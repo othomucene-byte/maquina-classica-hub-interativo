@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Máquina Clássica - Hub Interativo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col font-sans select-none antialiased">
+  <!-- Header -->
+  <header class="border-b border-slate-800 bg-slate-900/95 backdrop-blur h-16 px-4 sm:px-6 flex items-center justify-between sticky top-0 z-30">
+    <div class="flex items-center gap-3">
+      <div class="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 flex items-center justify-center font-bold shadow-md">
+        <i data-lucide="layers" class="w-5 h-5"></i>
+      </div>
+      <div>
+        <h1 class="font-extrabold text-sm sm:text-base text-white tracking-tight">Máquina Clássica</h1>
+        <p class="text-[11px] text-emerald-400 font-medium flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span>Ambiente Operacional Ativo &bull; Tempo Real</span>
+        </p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button onclick="exportToCsv()" class="hidden sm:flex px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-xl text-xs font-semibold items-center gap-1.5 transition">
+        <i data-lucide="download" class="w-3.5 h-3.5"></i>
+        <span>Exportar CSV</span>
+      </button>
+      <button onclick="openNewItemModal()" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md shadow-indigo-600/20 transition active:scale-95">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i>
+        <span>Adicionar Registro</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="bg-slate-900 border-b border-slate-800 px-4 sm:px-6 flex items-center gap-2 overflow-x-auto scrollbar-none py-2">
+    <button onclick="switchTab('overview')" id="tab-btn-overview" class="px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition flex items-center gap-1.5">
+      <i data-lucide="layout-dashboard" class="w-3.5 h-3.5"></i>
+      <span>Visão Geral</span>
+    </button>
+    <button onclick="switchTab('data')" id="tab-btn-data" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5">
+      <i data-lucide="table" class="w-3.5 h-3.5"></i>
+      <span>Registros & Tabela</span>
+    </button>
+    <button onclick="switchTab('stats')" id="tab-btn-stats" class="px-3 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5">
+      <i data-lucide="pie-chart" class="w-3.5 h-3.5"></i>
+      <span>Métricas & Performance</span>
+    </button>
+  </nav>
+
+  <!-- Main Container -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 flex-1 w-full space-y-6">
+    <!-- Top Stat Cards -->
+    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400 block">Total de Entradas</span>
+        <span id="statTotal" class="text-2xl font-black text-white font-mono mt-1 block">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400 block">Status Ativo</span>
+        <span id="statActive" class="text-2xl font-black text-emerald-400 font-mono mt-1 block">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400 block">Concluídos</span>
+        <span id="statDone" class="text-2xl font-black text-indigo-400 font-mono mt-1 block">0</span>
+      </div>
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4">
+        <span class="text-xs text-slate-400 block">Taxa de Conclusão</span>
+        <span id="statRate" class="text-2xl font-black text-amber-400 font-mono mt-1 block">0%</span>
+      </div>
+    </div>
+
+    <!-- VIEW 1: OVERVIEW -->
+    <section id="view-overview" class="space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl p-4 sm:p-5 space-y-4 shadow-sm">
+        <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+          <div class="relative flex-1">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2"></i>
+            <input 
+              type="text" 
+              id="searchInput" 
+              onkeyup="filterItems(this.value)"
+              placeholder="Buscar registros de Máquina Clássica..." 
+              class="w-full bg-slate-950 border border-slate-800 rounded-xl pl-10 pr-4 py-2 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition"
+            >
+          </div>
+          <div class="flex items-center gap-2">
+            <select id="statusFilter" onchange="filterItems(document.getElementById('searchInput').value)" class="bg-slate-950 border border-slate-800 text-xs text-white rounded-xl px-3 py-2 outline-none">
+              <option value="all">Todos os Status</option>
+              <option value="Ativo">Ativos</option>
+              <option value="Concluído">Concluídos</option>
+              <option value="Pendente">Pendentes</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Cards Grid -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5" id="recordsCards">
+          <!-- Rendered via JS -->
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 2: DATA TABLE -->
+    <section id="view-data" class="hidden space-y-4">
+      <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-xs border-collapse">
+            <thead>
+              <tr class="border-b border-slate-800 bg-slate-950 text-slate-400 uppercase text-[11px] font-semibold">
+                <th class="py-3 px-4">Código / ID</th>
+                <th class="py-3 px-4">Título / Item</th>
+                <th class="py-3 px-4">Categoria</th>
+                <th class="py-3 px-4">Prioridade</th>
+                <th class="py-3 px-4 text-center">Status</th>
+                <th class="py-3 px-4 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="tableRecordsBody" class="divide-y divide-slate-800/60 font-medium">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- VIEW 3: STATS & PROGRESS -->
+    <section id="view-stats" class="hidden space-y-4">
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 class="font-bold text-sm text-white">Distribuição por Categoria</h3>
+          <div id="categoryBars" class="space-y-3">
+            <!-- Rendered via JS -->
+          </div>
+        </div>
+
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-5 space-y-4">
+          <h3 class="font-bold text-sm text-white">Auditoria Operacional</h3>
+          <ul class="text-xs text-slate-400 space-y-2.5">
+            <li class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span>Sincronização de Dados</span>
+              <span class="text-emerald-400 font-bold">100% Online</span>
+            </li>
+            <li class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span>Persistência Local</span>
+              <span class="text-indigo-400 font-bold">Ativa</span>
+            </li>
+            <li class="flex items-center justify-between pb-2 border-b border-slate-800">
+              <span>Integridade dos Índices</span>
+              <span class="text-slate-200 font-bold">Otimizada</span>
+            </li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- ADD ITEM MODAL -->
+  <div id="itemModal" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-slate-900 border border-slate-800 rounded-3xl max-w-md w-full p-6 shadow-2xl space-y-4 animate-in fade-in duration-200">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+        <h3 class="font-bold text-sm text-white">Novo Registro de Máquina Clássica</h3>
+        <button onclick="closeItemModal()" class="text-slate-400 hover:text-white">&times;</button>
+      </div>
+
+      <div class="space-y-3 text-xs">
+        <div>
+          <label class="block text-slate-400 mb-1">Título do Registro:</label>
+          <input type="text" id="inputTitle" placeholder="Ex: Operação Primária..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-indigo-500">
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Categoria:</label>
+          <select id="inputCategory" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none">
+            <option value="Operacional">Operacional</option>
+            <option value="Estratégico">Estratégico</option>
+            <option value="Financeiro">Financeiro</option>
+            <option value="Qualidade">Qualidade</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Prioridade:</label>
+          <select id="inputPriority" class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none">
+            <option value="Alta">Alta</option>
+            <option value="Média">Média</option>
+            <option value="Normal">Normal</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-slate-400 mb-1">Descrição detalhada:</label>
+          <textarea id="inputDesc" rows="3" placeholder="Insira os parâmetros..." class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white outline-none focus:border-indigo-500"></textarea>
+        </div>
+      </div>
+
+      <div class="pt-2 flex justify-end gap-2">
+        <button onclick="closeItemModal()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl text-xs font-semibold">Cancelar</button>
+        <button onclick="saveNewItem()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold">Salvar Registro</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let records = [
+      { id: 101, title: 'Processo Inicial de ' + "Máquina Clássica", cat: 'Operacional', priority: 'Alta', desc: 'Ativação de fluxos e validação de parâmetros centrais.', status: 'Ativo', date: 'Hoje' },
+      { id: 102, title: 'Monitoramento Contínuo', cat: 'Qualidade', priority: 'Média', desc: 'Acompanhamento de eventos e cálculo de taxas operacionais.', status: 'Ativo', date: 'Hoje' },
+      { id: 103, title: 'Revisão Estrutural & Auditoria', cat: 'Estratégico', priority: 'Alta', desc: 'Verificação periódica de integridade e consistência.', status: 'Concluído', date: 'Ontem' },
+      { id: 104, title: 'Relatório Consolidado', cat: 'Financeiro', priority: 'Normal', desc: 'Compilação de índices e fechamento do ciclo.', status: 'Pendente', date: 'Esta semana' },
+    ];
+
+    function switchTab(viewId) {
+      ['overview', 'data', 'stats'].forEach(v => {
+        const el = document.getElementById('view-' + v);
+        const btn = document.getElementById('tab-btn-' + v);
+        if (v === viewId) {
+          el.classList.remove('hidden');
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-bold bg-indigo-600 text-white transition flex items-center gap-1.5';
+        } else {
+          el.classList.add('hidden');
+          btn.className = 'px-3 py-1.5 rounded-xl text-xs font-medium text-slate-400 hover:text-white transition flex items-center gap-1.5';
+        }
+      });
+      lucide.createIcons();
+    }
+
+    function updateStats() {
+      const total = records.length;
+      const active = records.filter(r => r.status === 'Ativo').length;
+      const done = records.filter(r => r.status === 'Concluído').length;
+      const rate = total > 0 ? Math.round((done / total) * 100) : 0;
+
+      document.getElementById('statTotal').innerText = total;
+      document.getElementById('statActive').innerText = active;
+      document.getElementById('statDone').innerText = done;
+      document.getElementById('statRate').innerText = rate + '%';
+
+      // Update category breakdown
+      const catCount = {};
+      records.forEach(r => catCount[r.cat] = (catCount[r.cat] || 0) + 1);
+      document.getElementById('categoryBars').innerHTML = Object.entries(catCount).map(([cat, count]) => {
+        const pct = Math.round((count / total) * 100);
+        return `
+          <div>
+            <div class="flex justify-between text-xs mb-1">
+              <span class="text-slate-300 font-medium">${cat}</span>
+              <span class="text-indigo-400 font-bold">${count} (${pct}%)</span>
+            </div>
+            <div class="h-2 rounded-full bg-slate-950 overflow-hidden">
+              <div class="bg-indigo-500 h-full rounded-full" style="width: ${pct}%"></div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    function renderUI(filterQuery = '') {
+      const q = (filterQuery || '').toLowerCase();
+      const statusF = document.getElementById('statusFilter').value;
+
+      const filtered = records.filter(r => {
+        const matchQ = r.title.toLowerCase().includes(q) || r.desc.toLowerCase().includes(q) || r.cat.toLowerCase().includes(q);
+        const matchS = statusF === 'all' || r.status === statusF;
+        return matchQ && matchS;
+      });
+
+      // Cards view
+      document.getElementById('recordsCards').innerHTML = filtered.map(r => `
+        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3 hover:border-slate-700 transition">
+          <div class="flex items-center justify-between">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              r.status === 'Ativo' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+              r.status === 'Concluído' ? 'bg-indigo-500/20 text-indigo-400 border border-indigo-500/30' :
+              'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+            }">${r.status}</span>
+            <span class="text-[10px] text-slate-500 font-mono">#${r.id}</span>
+          </div>
+          <div>
+            <h4 class="font-bold text-sm text-white">${r.title}</h4>
+            <p class="text-xs text-slate-400 mt-1 line-clamp-2 leading-relaxed">${r.desc}</p>
+          </div>
+          <div class="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs text-slate-400">
+            <span>${r.cat}</span>
+            <button onclick="toggleStatus(${r.id})" class="text-indigo-400 hover:text-indigo-300 font-bold">Alternar</button>
+          </div>
+        </div>
+      `).join('');
+
+      // Table view
+      document.getElementById('tableRecordsBody').innerHTML = filtered.map(r => `
+        <tr class="hover:bg-slate-800/30 transition">
+          <td class="py-3 px-4 font-mono text-slate-400">#${r.id}</td>
+          <td class="py-3 px-4 font-bold text-white">${r.title}</td>
+          <td class="py-3 px-4 text-slate-300">${r.cat}</td>
+          <td class="py-3 px-4 text-slate-400">${r.priority}</td>
+          <td class="py-3 px-4 text-center">
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold ${
+              r.status === 'Ativo' ? 'bg-emerald-500/20 text-emerald-400' :
+              r.status === 'Concluído' ? 'bg-indigo-500/20 text-indigo-400' :
+              'bg-amber-500/20 text-amber-400'
+            }">${r.status}</span>
+          </td>
+          <td class="py-3 px-4 text-right">
+            <button onclick="deleteRecord(${r.id})" class="text-rose-400 hover:text-rose-300 ml-2 font-bold">Excluir</button>
+          </td>
+        </tr>
+      `).join('');
+
+      updateStats();
+      lucide.createIcons();
+    }
+
+    function filterItems(val) {
+      renderUI(val);
+    }
+
+    function toggleStatus(id) {
+      const item = records.find(r => r.id === id);
+      if (item) {
+        if (item.status === 'Ativo') item.status = 'Concluído';
+        else if (item.status === 'Concluído') item.status = 'Pendente';
+        else item.status = 'Ativo';
+        renderUI(document.getElementById('searchInput').value);
+      }
+    }
+
+    function deleteRecord(id) {
+      records = records.filter(r => r.id !== id);
+      renderUI(document.getElementById('searchInput').value);
+    }
+
+    function openNewItemModal() {
+      document.getElementById('itemModal').classList.remove('hidden');
+    }
+
+    function closeItemModal() {
+      document.getElementById('itemModal').classList.add('hidden');
+    }
+
+    function saveNewItem() {
+      const t = document.getElementById('inputTitle').value.trim();
+      if (!t) return alert('Por favor insira o título do registro.');
+      const cat = document.getElementById('inputCategory').value;
+      const priority = document.getElementById('inputPriority').value;
+      const desc = document.getElementById('inputDesc').value.trim() || 'Sem descrição adicional.';
+
+      records.unshift({
+        id: Math.floor(Math.random() * 900) + 100,
+        title: t,
+        cat,
+        priority,
+        desc,
+        status: 'Ativo',
+        date: 'Agora'
+      });
+
+      document.getElementById('inputTitle').value = '';
+      document.getElementById('inputDesc').value = '';
+      closeItemModal();
+      renderUI();
+    }
+
+    function exportToCsv() {
+      const headers = ['ID,Titulo,Categoria,Prioridade,Status'];
+      const rows = records.map(r => `${r.id},"${r.title}","${r.cat}","${r.priority}","${r.status}"`);
+      const csvContent = 'data:text/csv;charset=utf-8,' + [headers, ...rows].join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', 'máquina clássica-dados.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    // Initial render
+    renderUI();
+  </script>
+</body>
+</html>
